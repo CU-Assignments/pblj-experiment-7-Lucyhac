@@ -1,0 +1,154 @@
+import java.sql.*;
+import java.util.Scanner;
+
+public class ProductCRUD {
+    public static void main(String[] args) throws Exception {
+        String url = "jdbc:mysql://localhost:3306/ProductDB";
+        String user = "root";
+        String password = "yourpassword";
+
+        Connection con = DriverManager.getConnection(url, user, password);
+        Scanner sc = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("\n--- Product CRUD Operations ---");
+            System.out.println("1. Create Product");
+            System.out.println("2. Read Products");
+            System.out.println("3. Update Product");
+            System.out.println("4. Delete Product");
+            System.out.println("5. Exit");
+            System.out.print("Enter Choice: ");
+            int choice = sc.nextInt();
+
+            switch (choice) {
+                case 1:
+                    create(con, sc);
+                    break;
+                case 2:
+                    read(con);
+                    break;
+                case 3:
+                    update(con, sc);
+                    break;
+                case 4:
+                    delete(con, sc);
+                    break;
+                case 5:
+                    con.close();
+                    System.exit(0);
+                default:
+                    System.out.println("Invalid Choice!");
+            }
+        }
+    }
+
+    static void create(Connection con, Scanner sc) {
+        try {
+            System.out.print("Enter Product ID: ");
+            int id = sc.nextInt();
+            System.out.print("Enter Product Name: ");
+            String name = sc.next();
+            System.out.print("Enter Price: ");
+            float price = sc.nextFloat();
+            System.out.print("Enter Quantity: ");
+            int qty = sc.nextInt();
+
+            con.setAutoCommit(false);
+            PreparedStatement ps = con.prepareStatement("INSERT INTO Product VALUES (?, ?, ?, ?)");
+            ps.setInt(1, id);
+            ps.setString(2, name);
+            ps.setFloat(3, price);
+            ps.setInt(4, qty);
+            ps.executeUpdate();
+            con.commit();
+
+            System.out.println("Product Inserted Successfully!");
+        } catch (Exception e) {
+            try {
+                con.rollback();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+            System.out.println("Error: " + e);
+        }
+    }
+
+    static void read(Connection con) {
+        try {
+            Statement st = con.createStatement();
+            ResultSet rs = st.executeQuery("SELECT * FROM Product");
+            System.out.println("ProductID | ProductName | Price | Quantity");
+            while (rs.next()) {
+                System.out.printf("%d \t %s \t %.2f \t %d\n",
+                        rs.getInt(1), rs.getString(2), rs.getFloat(3), rs.getInt(4));
+            }
+        } catch (Exception e) {
+            System.out.println("Error: " + e);
+        }
+    }
+
+    static void update(Connection con, Scanner sc) {
+        try {
+            System.out.print("Enter Product ID to Update: ");
+            int id = sc.nextInt();
+            System.out.print("Enter Field to Update (ProductName / Price / Quantity): ");
+            String field = sc.next();
+            System.out.print("Enter New Value: ");
+            String value = sc.next();
+
+            con.setAutoCommit(false);
+            String query = "UPDATE Product SET " + field + "=? WHERE ProductID=?";
+            PreparedStatement ps = con.prepareStatement(query);
+
+            if (field.equalsIgnoreCase("Price") || field.equalsIgnoreCase("Quantity")) {
+                ps.setFloat(1, Float.parseFloat(value));
+            } else {
+                ps.setString(1, value);
+            }
+            ps.setInt(2, id);
+            int count = ps.executeUpdate();
+
+            if (count > 0) {
+                con.commit();
+                System.out.println("Product Updated Successfully!");
+            } else {
+                con.rollback();
+                System.out.println("Product Not Found!");
+            }
+        } catch (Exception e) {
+            try {
+                con.rollback();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+            System.out.println("Error: " + e);
+        }
+    }
+
+    static void delete(Connection con, Scanner sc) {
+        try {
+            System.out.print("Enter Product ID to Delete: ");
+            int id = sc.nextInt();
+
+            con.setAutoCommit(false);
+            PreparedStatement ps = con.prepareStatement("DELETE FROM Product WHERE ProductID=?");
+            ps.setInt(1, id);
+            int count = ps.executeUpdate();
+
+            if (count > 0) {
+                con.commit();
+                System.out.println("Product Deleted Successfully!");
+            } else {
+                con.rollback();
+                System.out.println("Product Not Found!");
+            }
+        } catch (Exception e) {
+            try {
+                con.rollback();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+            System.out.println("Error: " + e);
+        }
+    }
+}
